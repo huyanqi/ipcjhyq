@@ -64,8 +64,6 @@ body {
 
 	$(document).ready(function() {
 		
-		getAllProvince();//获取所有省份信息
-		
 		//省份选择监听
 		$('#select-native-1').change(function(){ 
 			getCityByProvince($("#select-native-1").val(),0);
@@ -99,6 +97,8 @@ body {
 		
 		$('#datetimepicker').datetimepicker({lang:'ch'});
 		$('#datetimepicker2').datetimepicker({lang:'ch'});
+		
+		getAllProvince();//获取所有省份信息
 		
 	});
 	
@@ -173,11 +173,19 @@ body {
 					$("#select-native-1").append("<option value="+value.id+">"+value.name+"</option>");
 					$("#select-native-7").append("<option value="+value.id+">"+value.name+"</option>");
 				});
+				$("#select-native-1").val("28");
+				$("#select-native-1").trigger("change");
+				$("#select-native-7").val("28");
+				$("#select-native-7").trigger("change");
 				
 				$.each(result.data, function(n, value) {
 					$("#select-native-4").append("<option value="+value.id+">"+value.name+"</option>");
 					$("#select-native-10").append("<option value="+value.id+">"+value.name+"</option>");
 				});
+				$("#select-native-4").val("28");
+				$("#select-native-4").trigger("change");
+				$("#select-native-10").val("28");
+				$("#select-native-10").trigger("change");
 			},
 			dataType : "json"
 		});
@@ -200,12 +208,14 @@ body {
 					$.each(result.data, function(n, value) {
 						$("#select-native-2").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-2").trigger("change");
 				}else if(type == 1){
 					//更新目的地
 					$("#select-native-5").empty();
 					$.each(result.data, function(n, value) {
 						$("#select-native-5").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-5").trigger("change");
 				}
 			},
 			dataType : "json"
@@ -229,12 +239,14 @@ body {
 					$.each(result.data, function(n, value) {
 						$("#select-native-8").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-8").trigger("change");
 				}else if(type == 1){
 					//更新目的地
 					$("#select-native-11").empty();
 					$.each(result.data, function(n, value) {
 						$("#select-native-11").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-11").trigger("change");
 				}
 			},
 			dataType : "json"
@@ -257,11 +269,13 @@ body {
 					$.each(result.data, function(n, value) {
 						$("#select-native-3").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-3").trigger("change");
 				}else if(type == 1){
 					$("#select-native-6").empty();
 					$.each(result.data, function(n, value) {
 						$("#select-native-6").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-6").trigger("change");
 				}
 			},
 			dataType : "json"
@@ -370,7 +384,7 @@ function match(){
 
 		var time = $("#datetimepicker").val();
 
-		var path = "<%=basePath%>p4c";
+		var path = "<%=basePath%>testp4c";
 		var data = '{"toAddress":"' + toAddress + '","fromAddress":"'
 				+ fromAddress + '","time":"' + time + '","fromDistrict":'
 				+ fromDistrict + ',"toDistrict":' + toDistrict + ',"user":'
@@ -471,7 +485,7 @@ function match2(){
 	
 	var time = $("#datetimepicker2").val();
 	
-	var path = "<%=basePath%>c4p";
+	var path = "<%=basePath%>testc4p";
 	var data = '{"toAddress":"'+toAddress+'","fromAddress":"'+fromAddress+'","price":"' + price + '","car":"' + carmodel + '","people":'
 			+ people + ',"time":"' + time + '","fromDistrict":'
 			+ fromDistrict + ',"toDistrict":' + toDistrict + ',"user":'
@@ -532,14 +546,14 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-1" id="select-native-1"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-2" id="select-native-2"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -547,7 +561,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-3" id="select-native-3"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -564,7 +578,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-1" id="select-native-4"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -572,7 +586,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-2" id="select-native-5"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -580,7 +594,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-3" id="select-native-6"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -635,7 +649,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-1" id="select-native-7"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -643,7 +657,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-2" id="select-native-8"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 								        
 							</select>
 						</div>
@@ -652,7 +666,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-3" id="select-native-9"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 								        
 							</select>
 						</div>
@@ -670,7 +684,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-1" id="select-native-10"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -678,7 +692,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-2" id="select-native-11"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>
@@ -686,7 +700,7 @@ function match2(){
 					<td>
 						<div class="am-form-group am-form-select">
 							<select name="select-native-3" id="select-native-12"
-								data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
+								>
 							</select>
 						</div>
 					</td>

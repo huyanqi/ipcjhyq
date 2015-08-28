@@ -1,15 +1,5 @@
 package com.ipin.front.controller;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -21,7 +11,6 @@ import me.chanjar.weixin.mp.api.WxMpInMemoryConfigStorage;
 import me.chanjar.weixin.mp.api.WxMpServiceImpl;
 import me.chanjar.weixin.mp.bean.result.WxMpOAuth2AccessToken;
 import me.chanjar.weixin.mp.bean.result.WxMpUser;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,13 +22,11 @@ import org.springframework.web.servlet.ModelAndView;
 
 import redis.clients.jedis.ShardedJedis;
 import redis.clients.jedis.ShardedJedisPipeline;
-import sun.misc.BASE64Encoder;
 
 import com.ipin.front.model.MatchModel;
 import com.ipin.front.model.UserModel;
 import com.ipin.front.service.MatchService;
 import com.ipin.front.util.BaseData;
-import com.ipin.front.util.MD5Util;
 import com.ipin.front.util.Tools;
 
 @Controller
@@ -53,22 +40,28 @@ public class MatchController extends BaseData {
 	private RedisInitBean rib;
 
 	@RequestMapping(value = "/p4c")
-	public ModelAndView p4c(HttpServletRequest request, HttpSession session,
-			@RequestBody MatchModel match) {
+	public ModelAndView p4c(HttpServletRequest request, HttpSession session,@RequestBody MatchModel match) {
 		ModelAndView view = new ModelAndView("/json");
 		JSONObject jObj = new JSONObject();
 		String matchModelResult = Tools.matchModelIsWhole(match);// 表单验证
 		if ("".equals(matchModelResult)) {
 			if (session.getAttribute("user") == null) {
-				// 没有保存过session，属于人工创建
-				match.setTemp_user(matchService.createTempUser(match.user.name,
-						match.user.mobile));
+				// 没有保存过session，属于人工创建，判断是否有userSession
+				if(session.getAttribute("userSession") == null){
+					jObj.put(RESULT, NO);
+					jObj.put(DATA, "没有登录");
+					view.addObject(MODELS, jObj);
+					return view;
+				}
+				match.setTemp_user(matchService.createTempUser(match.user.name,match.user.mobile));
 				match.setUser(null);
 				// 删除这个临时用户以前的匹配数据
-				matchService.removeTempUserMatches(match.temp_user);
 			} else {
-				String openId = ((WxMpUser) session.getAttribute("user"))
-						.getOpenId();
+				//正式用户录入的信息，删除已存在的临时信息
+				/*MatchModel matchByMobile = matchService.getMatchByMobile(match.user.mobile,0);
+				if(matchByMobile != null)
+					matchService.removeMatchById(matchByMobile.id);*/
+				String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();
 				match.user.setOpenId(openId);
 				match.setUser(getUserByOpenId(match.user));// 获取用户信息，没有则创建新的
 			}
@@ -86,25 +79,32 @@ public class MatchController extends BaseData {
 			jObj.put(DATA, matchModelResult);
 		}
 		view.addObject(MODELS, jObj);
-		refreshMatch(request, match);
+		matchService.refreshMatch(request, match);
 		return view;
 	}
 
 	@RequestMapping(value = "/c4p")
-	public ModelAndView c4p(HttpServletRequest request, HttpSession session,
-			@RequestBody MatchModel match) {
+	public ModelAndView c4p(HttpServletRequest request, HttpSession session,@RequestBody MatchModel match) {
 		ModelAndView view = new ModelAndView("/json");
 		JSONObject jObj = new JSONObject();
 		String matchModelResult = Tools.matchModelIsWhole(match);
 		if ("".equals(matchModelResult)) {
 			if (session.getAttribute("user") == null) {
-				// 没有保存过session，属于人工创建
-				match.setTemp_user(matchService.createTempUser(match.user.name,
-						match.user.mobile));
+				// 没有保存过session，属于人工创建，判断是否有userSession
+				if(session.getAttribute("userSession") == null){
+					jObj.put(RESULT, NO);
+					jObj.put(DATA, "没有登录");
+					view.addObject(MODELS, jObj);
+					return view;
+				}
+				match.setTemp_user(matchService.createTempUser(match.user.name,match.user.mobile));
 				match.setUser(null);
 			} else {
-				String openId = ((WxMpUser) session.getAttribute("user"))
-						.getOpenId();
+				//正式用户录入的信息，删除已存在的临时信息
+				/*MatchModel matchByMobile = matchService.getMatchByMobile(match.user.mobile,0);
+				if(matchByMobile != null)
+					matchService.removeMatchById(matchByMobile.id);*/
+				String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();
 				match.user.setOpenId(openId);
 				match.setUser(getUserByOpenId(match.user));// 获取用户信息，没有则创建新的
 			}
@@ -125,7 +125,7 @@ public class MatchController extends BaseData {
 			jObj.put(DATA, matchModelResult);
 		}
 		view.addObject(MODELS, jObj);
-		refreshMatch(request, match);
+		matchService.refreshMatch(request, match); 
 		return view;
 	}
 
@@ -139,6 +139,19 @@ public class MatchController extends BaseData {
 	@RequestMapping(value = "/WXOAuth")
 	public ModelAndView WXOAuth(HttpSession session, String redirectJSP) {
 
+		WxMpUser wxMpUser = ((WxMpUser) session.getAttribute("user"));
+		if(wxMpUser != null){
+			//如果存在SESSION，就直接跳转到目标界面
+			MatchModel myMatch = matchService.getMyMatchByOpenId(wxMpUser.getOpenId());
+			ModelAndView view;
+			if(myMatch == null){
+				view = new ModelAndView("redirect:" + redirectJSP +".jsp");
+			}else{
+				view = new ModelAndView("redirect:mylist.jsp");
+			}
+			return view;
+		}
+		
 		WxMpInMemoryConfigStorage config = new WxMpInMemoryConfigStorage();
 		config.setAppId(WX_APPID); // 设置微信公众号的appid
 		config.setSecret(WX_APPSECRET); // 设置微信公众号的app corpSecret
@@ -240,28 +253,13 @@ public class MatchController extends BaseData {
 	}
 
 	/**
-	 * 刷新匹配数据，通知完成匹配的用户
-	 */
-	public void refreshMatch(HttpServletRequest request, MatchModel model) {
-		List<MatchModel> matchs = matchService.refreshMatch(model);
-		if (matchs.size() > 0) {
-			// 发送给我
-			matchService.sendSuccessMSG(request, model, matchs.get(0));
-		}
-		for (MatchModel match : matchs) {
-			// 发送给其他人
-			matchService.sendSuccessMSG(request, match, model);
-		}
-	}
-
-	/**
 	 * 获取我提交的匹配信息
 	 */
 	@RequestMapping(value = "/getMyMatch")
 	public ModelAndView getMyMatch(HttpSession session) {
 		ModelAndView view = new ModelAndView("/json");
 		JSONObject jObj = new JSONObject();
-		String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();// "oezO4uDJBNuyRd8VflHxjpguQmd0"
+		String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();//"olU-4uPi_KTjcOMjc2Nnlkt1_Rpk";
 		MatchModel model = matchService.getMyMatchByOpenId(openId);
 		if (model == null) {
 			// 无我的匹配信息
@@ -284,7 +282,7 @@ public class MatchController extends BaseData {
 	public ModelAndView getMyMatchs(HttpSession session) {
 		ModelAndView view = new ModelAndView("/json");
 		JSONObject jObj = new JSONObject();
-		String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();//"oezO4uDJBNuyRd8VflHxjpguQmd0";
+		String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();//"olU-4uPi_KTjcOMjc2Nnlkt1_Rpk";
 		MatchModel model = matchService.getMyMatchByOpenId(openId);
 		if (model == null) {
 			// 无我的匹配信息
@@ -329,68 +327,96 @@ public class MatchController extends BaseData {
 		return view;
 	}
 
-	@RequestMapping(value = "/testrefreshMatch")
-	public void testrefreshMatch(String mobile, int code, int minutes) {
-		try {
-			PrintWriter out = null;
-			BufferedReader in = null;
-			String result = "";
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-			String timestamp = "8a48b5514e8a7522014eaa80786f23d5:"
-					+ sdf.format(new Date());
-			URL url = new URL(
-					"https://sandboxapp.cloopen.com:8883/2013-12-26/Accounts/8a48b5514e8a7522014eaa80786f23d5/SMS/TemplateSMS?sig="
-							+ MD5Util.MD5("aaf98f894e999d73014eaae67228120c"
-									+ "ab9d7bbe3395479eb7350edb9f8fdfc8"
-									+ timestamp));
-			System.out.println(url);
-			// 打开和URL之间的连接
-			URLConnection conn = url.openConnection();
-			// 设置通用的请求属性
-			conn.setRequestProperty("Accept", "application/json");
-			conn.setRequestProperty("Content-Type",
-					"application/json;charset=utf-8");
-			conn.setRequestProperty("Authorization",
-					new BASE64Encoder().encode(timestamp.getBytes()));
-			// 发送POST请求必须设置如下两行
-			conn.setDoOutput(true);
-			conn.setDoInput(true);
-			// 获取URLConnection对象对应的输出流
-			out = new PrintWriter(conn.getOutputStream());
-			// 发送请求参数
-
-			JSONArray jAry = new JSONArray();
-			jAry.add(code);
-			jAry.add(minutes);
-			JSONObject params = new JSONObject();
-			params.put("to", mobile);
-			params.put("appId", "aaf98f894e999d73014eaae67202120b");
-			params.put("templateId", "1");
-
-			params.put("datas", jAry);
-			out.print(params.toString());
-			// flush输出流的缓冲
-			out.flush();
-			// 定义BufferedReader输入流来读取URL的响应
-			in = new BufferedReader(new InputStreamReader(
-					conn.getInputStream(), Charset.forName("UTF-8")));
-			String line;
-			while ((line = in.readLine()) != null) {
-				result += line;
+	@RequestMapping(value = "/testp4c")
+	public ModelAndView testp4c(HttpServletRequest request,@RequestBody MatchModel match) {
+		ModelAndView view = new ModelAndView("/json");
+		JSONObject jObj = new JSONObject();
+		String matchModelResult = Tools.matchModelIsWhole(match);// 表单验证
+		if ("".equals(matchModelResult)) {
+			//正式用户录入的信息，删除已存在的临时信息
+			String openId = "olU-4uPi_KTjcOMjc2Nnlkt1_Rpk";//((WxMpUser) session.getAttribute("user")).getOpenId();
+			match.user.setOpenId(openId);
+			match.setUser(getUserByOpenId(match.user));// 获取用户信息，没有则创建新的
+			boolean result = matchService.p4c(match);
+			if (result) {
+				jObj.put(RESULT, OK);
+				if (match.user != null)
+					matchService.sendSuccessMsgToOpenId(request, match.user.openId,"Biu~信息已成功录入，我们将尽快为你找到合适的小车车出行。请关注我们的微信推送消息和保持电话畅通。");
+			} else {
+				jObj.put(RESULT, NO);
+				jObj.put(DATA, "抱歉,后台处理异常");
 			}
-			in.close();
-			out.close();
-			System.out.println(result);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} else {
+			jObj.put(RESULT, NO);
+			jObj.put(DATA, matchModelResult);
 		}
+		view.addObject(MODELS, jObj);
+		matchService.refreshMatch(request, match);
+		return view;
 	}
 
-	@RequestMapping(value = "/testSMS")
-	public void testSMS(String mobile) {
-		
+	@RequestMapping(value = "/testc4p")
+	public ModelAndView testc4p(HttpServletRequest request, HttpSession session,@RequestBody MatchModel match) {
+		ModelAndView view = new ModelAndView("/json");
+		JSONObject jObj = new JSONObject();
+		String matchModelResult = Tools.matchModelIsWhole(match);
+		if ("".equals(matchModelResult)) {
+			if (session.getAttribute("user") == null) {
+				// 没有保存过session，属于人工创建，判断是否有userSession
+				if(session.getAttribute("userSession") == null){
+					jObj.put(RESULT, NO);
+					jObj.put(DATA, "没有登录");
+					view.addObject(MODELS, jObj);
+					return view;
+				}
+				match.setTemp_user(matchService.createTempUser(match.user.name,match.user.mobile));
+				match.setUser(null);
+			} else {
+				//正式用户录入的信息，删除已存在的临时信息
+				/*MatchModel matchByMobile = matchService.getMatchByMobile(match.user.mobile,0);
+				if(matchByMobile != null)
+					matchService.removeMatchById(matchByMobile.id);*/
+				String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();
+				match.user.setOpenId(openId);
+				match.setUser(getUserByOpenId(match.user));// 获取用户信息，没有则创建新的
+			}
+			boolean result = matchService.c4p(match);
+			if (result) {
+				jObj.put(RESULT, OK);
+				if (match.user != null) {
+					matchService
+							.sendSuccessMsgToOpenId(request, match.user.openId,
+									"Biu~信息已成功录入，我们将尽快为你找到合适的小伙伴出行。请关注我们的微信推送消息和保持电话畅通。");
+				}
+			} else {
+				jObj.put(RESULT, NO);
+				jObj.put(DATA, "抱歉,后台处理异常");
+			}
+		} else {
+			jObj.put(RESULT, NO);
+			jObj.put(DATA, matchModelResult);
+		}
+		view.addObject(MODELS, jObj);
+		matchService.refreshMatch(request, match); 
+		return view;
 	}
+	
+	@RequestMapping(value = "/dimMatch")
+	public ModelAndView dimMatch(HttpSession session) {
+		ModelAndView view = new ModelAndView("/json");
+		JSONObject jObj = new JSONObject();
+		String openId = ((WxMpUser) session.getAttribute("user")).getOpenId();//"olU-4uPi_KTjcOMjc2Nnlkt1_Rpk";
+		List<MatchModel> models = matchService.dimMatch(openId);
+		if(models == null || models.size() == 0){
+			jObj.put(RESULT, NO);
+			jObj.put(DATA, "无数据");
+		}else{
+			jObj.put(RESULT, OK);
+			jObj.put(DATA, models);
+		}
+		view.addObject(MODELS, jObj);
+		return view;
+	}
+	
 
 }

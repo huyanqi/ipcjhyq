@@ -40,10 +40,16 @@ public interface MatchService {
 	void sendSuccessMsgToOpenId(HttpServletRequest request, String openId,
 			String string);
 	
-	void sendSuccessSMSToMobile(String mobile,MatchModel targetModel);
+	void sendMatchSuccessMsgToOpenId(HttpServletRequest request,String openId,MatchModel targetModel);
+	
+	List<MatchModel> getMatchByMobile(String mobile);
+	
+	void clearByMobile(String mobile);
 
-	void sendSuccessMSG(HttpServletRequest request,MatchModel myModel, MatchModel otherModel);
+	List<MatchModel> dimMatch(String openId);
+	
+	void sendMsg2Mobile(String toMobiles,String[] datas,int type);
 
-	void removeTempUserMatches(TempUser tempUser);
+	void refreshMatch(HttpServletRequest request, MatchModel match);
 
 }

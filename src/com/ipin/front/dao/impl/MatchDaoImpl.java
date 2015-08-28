@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import com.ipin.front.dao.MatchDao;
 import com.ipin.front.model.MatchModel;
+import com.ipin.front.model.SMSModel;
 import com.ipin.front.model.TempUser;
 import com.ipin.front.model.UserModel;
 import com.ipin.front.util.Tools;
@@ -50,8 +51,7 @@ public class MatchDaoImpl extends HibernateDaoSupport implements MatchDao{
 
 	@Override
 	public void regUser(UserModel user) {
-		System.out.println("regUser:"+user.openId+","+user.name+","+user.mobile);
-		getHibernateTemplate().save(user);
+		getHibernateTemplate().saveOrUpdate(user);
 	}
 
 	@Override
@@ -143,16 +143,24 @@ public class MatchDaoImpl extends HibernateDaoSupport implements MatchDao{
 	}
 
 	@Override
-	public boolean removeMatchById(int id) {
+	public boolean removeMatch(MatchModel model) {
 		try{
-			MatchModel removeModel = new MatchModel();
-			removeModel.setId(id);
-			getHibernateTemplate().delete(removeModel);
+			getHibernateTemplate().delete(model);
 			return true;
 		}catch(Exception e){
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	@Override
+	public boolean removeMatchById(int id) {
+		MatchModel model = getMatchById(id);
+		if(model != null){
+			getHibernateTemplate().delete(model);
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -184,6 +192,44 @@ public class MatchDaoImpl extends HibernateDaoSupport implements MatchDao{
 	@Override
 	public List<MatchModel> getTempUserMatches(TempUser tempUser) {
 		return (List<MatchModel>) getHibernateTemplate().find("FROM MatchModel model WHERE model.temp_user.id = ?", tempUser.id);
+	}
+
+	@Override
+	public void saveSMSModel(SMSModel smsModel) {
+		getHibernateTemplate().save(smsModel);
+	}
+
+	@Override
+	public List<UserModel> getUserByMobile(String mobile) {
+		return (List<UserModel>) getHibernateTemplate().find("FROM UserModel model WHERE model.mobile = ?", mobile);
+	}
+
+	@Override
+	public List<MatchModel> getMatchByUser(int id) {
+		return (List<MatchModel>) getHibernateTemplate().find("FROM MatchModel model WHERE model.user.id = ?", id);
+	}
+
+	@Override
+	public List<TempUser> getTempUserByMobile(String mobile) {
+		return (List<TempUser>) getHibernateTemplate().find("FROM TempUser model WHERE model.mobile = ?", mobile);
+	}
+
+	@Override
+	public List<MatchModel> getMatchByTempUser(int id) {
+		return (List<MatchModel>) getHibernateTemplate().find("FROM MatchModel model WHERE model.temp_user.id = ?", id);
+	}
+
+	@Override
+	public List<MatchModel> dimMatch(MatchModel myMatch) {
+		//获取出发地/目的地/时间yyyyMMdd相同的数据
+		int type = myMatch.type == 0 ? 1:0;
+		return (List<MatchModel>) getHibernateTemplate().find("FROM MatchModel model WHERE "
+				+ "model.fromDistrict.city.id = ? AND "
+				+ "model.toDistrict.city.id = ? AND "
+				+ "model.year = ? AND "
+				+ "model.month = ? AND "
+				+ "model.date = ? AND "
+				+ "model.type = ?", new Object[]{myMatch.fromDistrict.city.id,myMatch.toDistrict.city.id,myMatch.year,myMatch.month,myMatch.date,type});
 	}
 
 }

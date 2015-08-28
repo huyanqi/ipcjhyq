@@ -1,9 +1,10 @@
 package com.ipin.front.service.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -14,26 +15,24 @@ import me.chanjar.weixin.mp.bean.WxMpCustomMessage;
 import me.chanjar.weixin.mp.bean.WxMpTemplateData;
 import me.chanjar.weixin.mp.bean.WxMpTemplateMessage;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cloopen.rest.sdk.CCPRestSDK;
 import com.ipin.front.dao.MatchDao;
 import com.ipin.front.model.MatchModel;
+import com.ipin.front.model.SMSModel;
 import com.ipin.front.model.TempUser;
 import com.ipin.front.model.UserModel;
 import com.ipin.front.service.MatchService;
 import com.ipin.front.util.BaseData;
 import com.ipin.front.util.Tools;
 
+/**
+ * @author Frankie
+ *
+ */
 @Service("matchService")
 @Transactional(rollbackFor = Exception.class)
 public class MatchServiceImpl extends BaseData implements MatchService {
@@ -43,12 +42,20 @@ public class MatchServiceImpl extends BaseData implements MatchService {
 	
 	@Override
 	public boolean p4c(MatchModel match) {
+		if(match.user != null)
+			clearByMobile(match.user.mobile);
+		else
+			clearByMobile(match.temp_user.mobile);
 		boolean result = matchDao.saveMatchModel(match);
 		return result;
 	}
 
 	@Override
 	public boolean c4p(MatchModel match) {
+		if(match.user != null)
+			clearByMobile(match.user.mobile);
+		else
+			clearByMobile(match.temp_user.mobile);
 		boolean result = matchDao.saveMatchModel(match);
 		return result;
 	}
@@ -168,6 +175,11 @@ public class MatchServiceImpl extends BaseData implements MatchService {
 			user.setOpenId(openId);
 			matchDao.regUser(user);
 			userModel = user;
+		}else{
+			//修改名字和电话,保证每次自动填充的都是最后一条记录的信息
+			userModel.setName(user.getName());
+			userModel.setMobile(user.getMobile());
+			matchDao.regUser(userModel);
 		}
 		return userModel;
 	}
@@ -231,6 +243,7 @@ public class MatchServiceImpl extends BaseData implements MatchService {
 		}
     }
 	
+	@Override
 	public void sendMatchSuccessMsgToOpenId(HttpServletRequest request,String openId,MatchModel targetModel){
     	WxMpInMemoryConfigStorage config = new WxMpInMemoryConfigStorage();
 		config.setAppId(WX_APPID); // 设置微信公众号的appid
@@ -266,98 +279,229 @@ public class MatchServiceImpl extends BaseData implements MatchService {
 			templateMessage.getDatas().add(new WxMpTemplateData("keyword4", targetModel.temp_user.name));
 			templateMessage.getDatas().add(new WxMpTemplateData("keyword5", targetModel.temp_user.mobile));
 		}
-		templateMessage.getDatas().add(new WxMpTemplateData("remark", "感谢您使用 i拼车"));
+		if(targetModel.type == 0){
+			//本条信息发给车
+			templateMessage.getDatas().add(new WxMpTemplateData("remark", "感谢您使用 i拼车"));
+		}else{
+			//本条信息发给人
+			templateMessage.getDatas().add(new WxMpTemplateData("remark", "将分摊油费"+targetModel.price+"元,感谢您使用 i拼车","#FF4500"));
+		}
 		try {
 			wxMpService.templateSend(templateMessage);
 		} catch (WxErrorException e) {
 			e.printStackTrace();
 		}
     }
-
-	@Override
-	public void sendSuccessMSG(HttpServletRequest request,MatchModel myModel, MatchModel otherModel) {
-		String mymobile = "";
-		String othermobile = "";
-		String name = "";
-		if(myModel.user != null){
-			mymobile = myModel.user.mobile;
-		}else{
-			mymobile = myModel.temp_user.mobile;
-		}
-		if(otherModel.user != null){
-			othermobile = otherModel.user.mobile;
-			name = otherModel.user.name;
-		}else{
-			othermobile = otherModel.temp_user.mobile;
-			name = otherModel.temp_user.name;
-		}
-		if(myModel.user != null){
-			//发送微信提示
-			sendMatchSuccessMsgToOpenId(request, myModel.user.openId, otherModel);
-		}
-		//先检查短信是否已发送过,没有发送再发
-		//发送短信提示
-		if(myModel.user != null){
-			sendSuccessSMSToMobile(myModel.user.mobile, otherModel);
-		}else{
-			sendSuccessSMSToMobile(myModel.temp_user.mobile, otherModel);
-		}
-		matchDao.saveMatchModel(myModel);
-	}
-
-	@Override
-	public void removeTempUserMatches(TempUser tempUser) {
-		List<MatchModel> list = matchDao.getTempUserMatches(tempUser);
-		for(MatchModel model : list){
-			System.out.println("删除："+model.id);
-			matchDao.removeMatchById(model.id);
-		}
-	}
-
-	@Override
-	public void sendSuccessSMSToMobile(String mobile, MatchModel targetModel) {
-		int date = targetModel.date;
-		int hour = targetModel.hour;
-		String from = targetModel.fromDistrict.name;
-		String to = targetModel.toDistrict.name;
-		String name = "";
-		String tomobile = "";
-		if(targetModel.user != null){
-			name = targetModel.user.name;
-			tomobile = targetModel.user.mobile;
-		}else{
-			name = targetModel.temp_user.name;
-			tomobile = targetModel.temp_user.mobile;
-		}
-		DefaultHttpClient httpclient = new DefaultHttpClient();
-		HttpPost httpPost = new HttpPost("http://dx.chinactcm.com/osgi/sendSMS.do");
-		List<NameValuePair> nvps = new ArrayList<NameValuePair>();
-		nvps.add(new BasicNameValuePair("userName", "i拼车"));
-		nvps.add(new BasicNameValuePair("passWord", "a123123"));
-		nvps.add(new BasicNameValuePair("phoneList", mobile));
-		if(targetModel.type == 0){
-			//目标是人找车，mobile对象是车主电话
-			String msg = "【i拼车】亲爱的拼车群友，已找到"+date+"日"+hour+"点"+from+"到"+to+"的拼客"+name+tomobile+"请及时联系。关注公众号xxxxxx告别拼车等待。".replace("区", "").replace("市", "");
-			nvps.add(new BasicNameValuePair("content", msg));
-		}else{
-			//目标是车找人,mobile对象是拼客电话
-			String msg = "【i拼车】亲爱的拼车群友，已找到"+date+"日"+hour+"点"+from+"到"+to+"的车主"+name+tomobile+"请及时联系。关注公众号xxxxxx告别拼车等待。".replace("区", "").replace("市", "");
-			nvps.add(new BasicNameValuePair("content", msg));
-		}
-		try {
-			httpPost.setEntity(new UrlEncodedFormEntity(nvps, "utf-8"));
-			HttpResponse response = httpclient.execute(httpPost);
-			System.out.println(response.getStatusLine());
-			HttpEntity entity = response.getEntity();
-			String responseStr = EntityUtils.toString(entity, "utf-8");
-			// TODO: 在这里解析服务器的响应文本
-			System.out.println(response.getStatusLine() + ":" + responseStr);
-			EntityUtils.consume(entity);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			httpPost.releaseConnection();
+	
+	private void sendMatchSuccessMsgToOpenId(HttpServletRequest request,String openId, List<MatchModel> otherModels) {
+		WxMpInMemoryConfigStorage config = new WxMpInMemoryConfigStorage();
+		config.setAppId(WX_APPID); // 设置微信公众号的appid
+		config.setSecret(WX_APPSECRET); // 设置微信公众号的app corpSecret
+		config.setToken(WX_TOKEN); // 设置微信公众号的token
+		config.setAesKey(WX_AESKEY); // 设置微信公众号的EncodingAESKey
+		
+		WxMpServiceImpl wxMpService = new WxMpServiceImpl();
+		wxMpService.setWxMpConfigStorage(config);
+		
+		WxMpTemplateMessage templateMessage = new WxMpTemplateMessage();
+		templateMessage.setToUser(openId);
+		templateMessage.setUrl(DOMAIN+"mylist.jsp");
+		templateMessage.setTopColor("#04aeda");
+		for(MatchModel targetModel:otherModels){
+			String role;
+			if(targetModel.type == 0){
+				//目标是人
+				role = "拼客";
+				templateMessage.setTemplateId("S_wVsjczeOa5Lm3ttUj_y2aqBMs2yf4hzm1AieUDOyQ");
+			}else{
+				//目标是车
+				role = "车主";
+				templateMessage.setTemplateId("8VZvWCwtN4_PyW-LNgrDnKy8sZSPKTvzG69vqqt5iBw");
+			}
+			templateMessage.getDatas().add(new WxMpTemplateData("first", "已匹配到"+role+",请及时联系"));
+			templateMessage.getDatas().add(new WxMpTemplateData("keyword1", Tools.getAddress(targetModel.fromDistrict, targetModel.fromAddress)));
+			templateMessage.getDatas().add(new WxMpTemplateData("keyword2", Tools.getAddress(targetModel.toDistrict, targetModel.toAddress)));
+			templateMessage.getDatas().add(new WxMpTemplateData("keyword3", targetModel.time));
+			if(targetModel.user != null){
+				templateMessage.getDatas().add(new WxMpTemplateData("keyword4", targetModel.user.name));
+				templateMessage.getDatas().add(new WxMpTemplateData("keyword5", targetModel.user.mobile));
+			}else{
+				templateMessage.getDatas().add(new WxMpTemplateData("keyword4", targetModel.temp_user.name));
+				templateMessage.getDatas().add(new WxMpTemplateData("keyword5", targetModel.temp_user.mobile));
+			}
+			if(targetModel.type == 0){
+				//本条信息发给车
+				templateMessage.getDatas().add(new WxMpTemplateData("remark", "感谢您使用 i拼车"));
+			}else{
+				//本条信息发给人
+				templateMessage.getDatas().add(new WxMpTemplateData("remark", "将分摊油费"+targetModel.price+"元,感谢您使用 i拼车","#FF4500"));
+			}
+			try {
+				wxMpService.templateSend(templateMessage);
+			} catch (WxErrorException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
+	/**
+	 * 
+	 * @param mobile 手机号
+	 * @param type 0临时用户 1正式用户
+	 * @return
+	 */
+	@Override
+	public List<MatchModel> getMatchByMobile(String mobile) {
+		List<MatchModel> models = new ArrayList<MatchModel>();
+		List<TempUser> tempUser = matchDao.getTempUserByMobile(mobile);
+		for(TempUser user : tempUser){
+			List<MatchModel> model = matchDao.getMatchByTempUser(user.id);
+			models.addAll(model);
+		}
+		
+		List<UserModel> user = matchDao.getUserByMobile(mobile);
+		for(UserModel um : user){
+			List<MatchModel> model = matchDao.getMatchByUser(um.id);
+			models.addAll(model);
+		}
+		return models;
+	}
+	
+	@Override
+	public void clearByMobile(String mobile) {
+		List<MatchModel> matchs = getMatchByMobile(mobile);
+		for(MatchModel match : matchs){
+			matchDao.removeMatch(match);
+		}
+	}
+
+	/**
+	 * 获取与我行程同一天、同一出发地/目的地的匹配信息
+	 */
+	@Override
+	public List<MatchModel> dimMatch(String openId) {
+		MatchModel myMatch = matchDao.getMyMatchByOpenId(openId);
+		if(myMatch == null) return null;
+		return matchDao.dimMatch(myMatch);
+	}
+
+	/**
+	 * toMobiles:目标手机号，多个用,隔开
+	 * datas 短信里面的模板内容
+	 * type:0(对方是车找人):使用模板29183 1(对方是人找车):使用模板27475
+	 */
+	@Override
+	public void sendMsg2Mobile(String toMobiles, String[] datas, int type) {
+		MatchModel model = getMatchByMobile(toMobiles).get(0);
+		if(model.temp_user != null && model.msgcount > 0){
+			//是临时用户，并且接收过匹配信息，不再发送
+			return;
+		}
+		HashMap<String, Object> result = null;
+		CCPRestSDK restAPI = new CCPRestSDK();
+		restAPI.init("app.cloopen.com", "8883");// 初始化服务器地址和端口，格式如下，服务器地址不需要写https://
+		restAPI.setAccount("8a48b5514e8a7522014eaa80786f23d5", "f2e464252d5a4806b9ceb6b838ebd7ea");// 初始化主帐号名称和主帐号令牌
+		restAPI.setAppId("8a48b5514eaf512c014eb3c631bb05d8");// 初始化应用ID
+		List<String> temp = new ArrayList<String>();
+		for(String str:datas){
+			if(str != null)
+				temp.add(str);
+		}
+		datas = new String[temp.size()];
+		for(int i=0;i<temp.size();i++){
+			datas[i] = temp.get(i);
+		}
+		
+		result = restAPI.sendTemplateSMS(toMobiles,type==0?"29183":"27475",datas);
+		SMSModel smsModel = new SMSModel();
+		smsModel.content = Tools.ary2Str(datas);
+		smsModel.statusCode = (String) result.get("statusCode");
+		smsModel.mobile = toMobiles;
+		if("000000".equals(result.get("statusCode"))){
+			//正常返回输出data包体信息（map）
+			HashMap<String,Object> data = (HashMap<String, Object>) result.get("data");
+			Set<String> keySet = data.keySet();
+			for(String key:keySet){
+				Object object = data.get(key);
+			}
+		}else{
+			//异常返回输出错误码和错误信息
+			smsModel.statusMsg = (String) result.get("statusMsg");
+		}
+		matchDao.saveSMSModel(smsModel);
+		
+		for(MatchModel my : getMatchByMobile(toMobiles)){
+			my.msgcount ++;
+			matchDao.saveMatchModel(my); 
+		}
+	}
+
+	/**
+	 * 刷新匹配数据，通知完成匹配的用户
+	 */
+	@Override
+	public void refreshMatch(HttpServletRequest request, MatchModel model) {
+		List<MatchModel> matchs = refreshMatch(model);
+		if(matchs.size() == 0)return;
+		//有匹配到的数据，需要发送成功短信
+		String tartgetMobile = "";
+		for(MatchModel targetModel : matchs){
+			if(targetModel.user != null){
+				tartgetMobile += targetModel.user.mobile+",";
+				//组装发给我的数据
+				if(model.user != null){
+					sendMatchSuccessMsgToOpenId(request, model.user.openId, targetModel);
+				}
+			}else{
+				tartgetMobile += targetModel.temp_user.mobile+",";
+			}
+			
+			//再发给对方
+			if(targetModel.user != null){
+				sendMatchSuccessMsgToOpenId(request, targetModel.user.openId, model);
+			}
+		}
+		if(tartgetMobile.length() > 0) tartgetMobile = tartgetMobile.substring(0,tartgetMobile.length()-1);
+		String[] data = new String[7];
+		data[0] = model.date+"";
+		data[1] = model.hour+"";
+		data[2] = model.fromDistrict.name;
+		data[3] = model.toDistrict.name;
+		data[4] = (model.type==0?"车主:":"拼客:")+tartgetMobile;
+		if(model.type==0){
+			//需要提示油费信息
+			data[5] = matchs.get(0).price+"";
+		}
+		data[6] = "ippppc";
+		if(model.user != null){
+			sendMsg2Mobile(model.user.mobile, data,model.type);
+		}else{
+			sendMsg2Mobile(model.temp_user.mobile, data,model.type);
+		}
+		
+		//再组装发给对方的数据
+		data = new String[7];
+		for(MatchModel targetModel : matchs){
+			data[0] = targetModel.date+"";
+			data[1] = targetModel.hour+"";
+			data[2] = targetModel.fromDistrict.name;
+			data[3] = targetModel.toDistrict.name;
+			if(model.user != null){
+				data[4] = (targetModel.type==0?"车主:":"拼客:"+model.user.mobile);
+			}else{
+				data[4] = (targetModel.type==0?"车主:":"拼客:"+model.temp_user.mobile);
+			}
+			if(targetModel.type==0){
+				//需要提示油费信息
+				data[5] = model.price+"";
+			}
+			data[6] = "ippppc";
+			if(targetModel.user != null){
+				sendMsg2Mobile(targetModel.user.mobile, data,targetModel.type);
+			}else{
+				sendMsg2Mobile(targetModel.temp_user.mobile, data,targetModel.type);
+			}
+		}
+	}
+	
 }

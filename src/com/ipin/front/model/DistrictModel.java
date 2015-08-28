@@ -23,7 +23,7 @@ public class DistrictModel implements Serializable{
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	public int id;
+	public Integer id;
 	
 	@Column
 	public String name;
@@ -31,12 +31,15 @@ public class DistrictModel implements Serializable{
 	@ManyToOne
 	@JoinColumn(name="city")
 	public CityModel city;
+	
+	@Column
+	public int weight;//ШЈжи
 
-	public int getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -54,6 +57,14 @@ public class DistrictModel implements Serializable{
 
 	public void setCity(CityModel city) {
 		this.city = city;
+	}
+
+	public int getWeight() {
+		return weight;
+	}
+
+	public void setWeight(int weight) {
+		this.weight = weight;
 	}
 
 }

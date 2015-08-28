@@ -10,6 +10,7 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui, user-scalable=no">
 <title>正在努力加载...</title>
 
 <link rel="stylesheet" href="<%=basePath%>js/amazeui/assets/css/amazeui.min.css">
@@ -39,7 +40,7 @@ function WXOAuthCompleted(code, state) {
 		url : path,
 		success : function(result) {
 			$.AMUI.progress.done();
-			window.location.href = result.state+".jsp";
+			window.location.replace(result.state+".jsp");
 		},
 		dataType : "json"
 	});

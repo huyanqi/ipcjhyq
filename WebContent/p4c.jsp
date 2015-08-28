@@ -9,8 +9,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-<meta name="viewport"
-	content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui, user-scalable=no">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="stylesheet"
 	href="<%=basePath%>js/datetimepicker/jquery.datetimepicker.css">
@@ -58,6 +57,12 @@ body {
 	-moz-box-sizing: border-box;
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
+}
+
+select{
+	float: left;
+	width: 33%;
+	background: transparent;
 }
 </style>
 
@@ -159,11 +164,13 @@ body {
 				$.each(result.data, function(n, value) {
 					$("#select-native-1").append("<option value="+value.id+">"+value.name+"</option>");
 				});
+				$("#select-native-1").val("28");
 				$("#select-native-1").trigger("change");
 				
 				$.each(result.data, function(n, value) {
 					$("#select-native-4").append("<option value="+value.id+">"+value.name+"</option>");
 				});
+				$("#select-native-4").val("28");
 				$("#select-native-4").trigger("change");
 			},
 			dataType : "json"
@@ -187,12 +194,14 @@ body {
 					$.each(result.data, function(n, value) {
 						$("#select-native-2").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-2").trigger("change");
 				}else if(type == 1){
 					//更新目的地
 					$("#select-native-5").empty();
 					$.each(result.data, function(n, value) {
 						$("#select-native-5").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-5").trigger("change");
 				}
 			},
 			dataType : "json"
@@ -348,70 +357,29 @@ body {
 	<table style="width: 100%; margin-top: 20px;"
 		class="am-table am-table-bordered am-table-striped am-text-nowrap">
 		<tr>
-			<td id="address" align="right">出发地：</td>
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-1" id="select-native-1"
-						data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-
-					</select>
-				</div>
-			</td>
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-2" id="select-native-2"
-						data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-3" id="select-native-3"
-						data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-
-					</select>
-				</div>
+			<td align="right" style="width: 10%;">出发地：</td>
+			<td style="width: 90%">
+					<select id="select-native-1"></select>
+					<select id="select-native-2"></select>
+					<select id="select-native-3"></select>
 			</td>
 		</tr>
 		
 		<tr>
-			<td id="address">出发地址：</td>
+			<td>出发地址：</td>
 			<td colspan="3"><input id="fromAddress" type="text" class="am-form-field" placeholder="(选填)"/></td>
 		</tr>
 
 		<tr>
-			<td align="right">目的地：</td>
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-1" id="select-native-4"
-						data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-2" id="select-native-5"
-						data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-3" id="select-native-6"
-						data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
+			<td align="right" style="width: 10%;">目的地：</td>
+			<td style="width: 90%">
+				<select id="select-native-4"></select>
+				<select id="select-native-5"></select>
+				<select id="select-native-6"></select>
 			</td>
 		</tr>
 		<tr>
-			<td id="address">目的地址：</td>
+			<td>目的地址：</td>
 			<td colspan="3"><input id="toAddress" type="text" class="am-form-field" placeholder="(选填)"/></td>
 		</tr>
 		<tr>
@@ -420,12 +388,12 @@ body {
 				class="am-form-field" readonly="readonly" /></td>
 		</tr>
 		<tr>
-			<td align="right">联系人名:</td>
+			<td align="right">联系人名：</td>
 			<td colspan="3"><input type="text" id="name"
 				class="am-form-field" /></td>
 		</tr>
 		<tr>
-			<td align="right">联系电话:</td>
+			<td align="right">联系电话：</td>
 			<td colspan="3"><input type="number" id="mobile"
 				class="am-form-field" onkeypress="return noNumbers(event)"/></td>
 		</tr>

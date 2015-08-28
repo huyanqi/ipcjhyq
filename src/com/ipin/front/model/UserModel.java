@@ -21,7 +21,7 @@ public class UserModel implements Serializable{
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	public int id;
+	public Integer id;
 	
 	@Column
 	public String name;//联系人名
@@ -31,12 +31,12 @@ public class UserModel implements Serializable{
 	
 	@Column
 	public String openId;//微信openId
-	
-	public int getId() {
+
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 

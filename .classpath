@@ -61,5 +61,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/weixin-java-common-1.1.6.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/httpclient-4.3.3.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/httpcore-4.3.2.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/CCP_REST_SDK_JAVA_v2.6r.jar"/>
 	<classpathentry kind="output" path="WebContent/WEB-INF/classes"/>
 </classpath>

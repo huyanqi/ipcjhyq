@@ -9,7 +9,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimal-ui, user-scalable=no">
+
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <link rel="stylesheet"
 	href="<%=basePath%>js/datetimepicker/jquery.datetimepicker.css">
@@ -58,6 +59,13 @@ body {
 	-webkit-box-sizing: border-box;
 	box-sizing: border-box;
 }
+
+select{
+	float: left;
+	width: 33%;
+	background: transparent;
+}
+
 </style>
 
 <title>车找人-信息登记</title>
@@ -159,11 +167,13 @@ body {
 				$.each(result.data, function(n, value) {
 					$("#select-native-1").append("<option value="+value.id+">"+value.name+"</option>");
 				});
+				$("#select-native-1").val("28");
 				$("#select-native-1").trigger("change");
 				
 				$.each(result.data, function(n, value) {
 					$("#select-native-4").append("<option value="+value.id+">"+value.name+"</option>");
 				});
+				$("#select-native-4").val("28");
 				$("#select-native-4").trigger("change");
 			},
 			dataType : "json"
@@ -187,12 +197,14 @@ body {
 					$.each(result.data, function(n, value) {
 						$("#select-native-2").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-2").trigger("change");
 				}else if(type == 1){
 					//更新目的地
 					$("#select-native-5").empty();
 					$.each(result.data, function(n, value) {
 						$("#select-native-5").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-5").trigger("change");
 				}
 			},
 			dataType : "json"
@@ -215,6 +227,7 @@ body {
 					$.each(result.data, function(n, value) {
 						$("#select-native-3").append("<option value="+value.id+">"+value.name+"</option>");
 					});
+					$("#select-native-3").find("option:selected").attr("selected",false);
 				}else if(type == 1){
 					$("#select-native-6").empty();
 					$.each(result.data, function(n, value) {
@@ -293,15 +306,17 @@ body {
 		var toDistrict = '{"id":'+toDistrictId+',"name":"'+toDistrictName+'","city":'+toCity+'}';
 		//toDistrict = eval('(' + toDistrict + ')');
 		var price = $("#price").val();
+		if(price == "" || price > 100){
+			alert("平摊油费请不要超过100元.");
+			return;
+		}
 		
 		var time = $("#datetimepicker").val();
 		
-		var path = "<%=basePath%>c4p";
 		var data = '{"toAddress":"'+toAddress+'","fromAddress":"'+fromAddress+'","price":"' + price + '","car":"' + carmodel + '","people":'
 				+ people + ',"time":"' + time + '","fromDistrict":'
 				+ fromDistrict + ',"toDistrict":' + toDistrict + ',"user":'
 				+ user + ',"type":1}';
-
 		var $btn = $("#submit");
 		$btn.button('loading');
 		$.ajax({
@@ -309,7 +324,7 @@ body {
 			dataType : "json",
 			contentType : "application/json ; charset=utf-8",
 			data : data,
-			url : path,
+			url : "<%=basePath%>c4p",
 			success : function(result) {
 				$btn.button('reset');
 				if (result.result == "ok") {
@@ -343,64 +358,29 @@ body {
 	<table style="width: 100%; margin-top: 20px;"
 		class="am-table am-table-bordered am-table-striped am-text-nowrap">
 		<tr>
-			<td id="address">出发地点：</td>
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-1" id="select-native-1" data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-2" id="select-native-2" data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-3" id="select-native-3" data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
+			<td align="right" style="width: 10%;">出发地：</td>
+			<td style="width: 90%">
+					<select id="select-native-1"></select>
+					<select id="select-native-2"></select>
+					<select id="select-native-3"></select>
 			</td>
 		</tr>
 
 		<tr>
-			<td id="address">出发地址：</td>
+			<td>出发地址：</td>
 			<td colspan="3"><input id="fromAddress" type="text" class="am-form-field" placeholder="(选填)"/></td>
 		</tr>
 
 		<tr>
-			<td>目的地：</td>
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-1" id="select-native-4" data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-2" id="select-native-5" data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
-			</td>
-
-			<td>
-				<div class="am-form-group am-form-select">
-					<select name="select-native-3" id="select-native-6" data-am-selected="{btnWidth: '100%', btnSize: 'sm', btnStyle: 'secondary',maxHeight: 200}">
-						        
-					</select>
-				</div>
+			<td align="right" style="width: 10%;">目的地：</td>
+			<td style="width: 90%">
+				<select id="select-native-4"></select>
+				<select id="select-native-5"></select>
+				<select id="select-native-6"></select>
 			</td>
 		</tr>
 		<tr>
-			<td id="address">目的地址：</td>
+			<td>目的地址：</td>
 			<td colspan="3"><input id="toAddress" type="text" class="am-form-field" placeholder="(选填)"/></td>
 		</tr>
 		<tr>
@@ -417,7 +397,7 @@ body {
 			<td colspan="3"><input id="people" value="3" class="am-form-field" type="number" onkeypress="return noNumbers(event)"/></td>
 		</tr>
 		<tr>
-			<td>价&emsp;&emsp;格：</td>
+			<td>平摊油费：</td>
 			<td colspan="3"><input id="price" type="number" value="0" class="am-form-field" onkeypress="return noNumbers(event)"/></td>
 		</tr>
 		<tr>

@@ -1,6 +1,7 @@
 package com.ipin.front.model;
 
 import java.io.Serializable;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -61,6 +62,9 @@ public class MatchModel implements Serializable{
 	
 	@Column
 	public int price = 0;				//价格
+	
+	@Column
+	public int msgcount = 0;		//已发短信次数
 
 	/****时间*****/
 	@Column
@@ -71,6 +75,9 @@ public class MatchModel implements Serializable{
 	public int date;				//日
 	@Column
 	public int hour;				//时，24小时制
+	
+	@Column
+	public Date update_time = new Date();		//录入时间
 	
 	public Integer getId() {
 		return id;
@@ -198,6 +205,22 @@ public class MatchModel implements Serializable{
 
 	public void setTemp_user(TempUser temp_user) {
 		this.temp_user = temp_user;
+	}
+
+	public Date getUpdate_time() {
+		return update_time;
+	}
+
+	public void setUpdate_time(Date update_time) {
+		this.update_time = update_time;
+	}
+
+	public int getMsgcount() {
+		return msgcount;
+	}
+
+	public void setMsgcount(int msgcount) {
+		this.msgcount = msgcount;
 	}
 
 }

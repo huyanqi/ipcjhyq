@@ -15,7 +15,11 @@ public class Tools {
 		}
 		if(model.toDistrict == null || model.toDistrict.city == null || model.toDistrict.city.id == 0 || model.toDistrict.city.province == null || model.toDistrict.city.province.id == 0){
 			return "请选择目的地";
-		}if(model.user == null){
+		}
+		if(model.fromDistrict.id .equals( model.toDistrict.id)){
+			return "出发地不能是同一个城市的同一个地区";
+		}
+		if(model.user == null){
 			return "请填写联系人信息";
 		}
 		if(model.time == null || "".equals(model.time)){
@@ -23,6 +27,18 @@ public class Tools {
 		}
 		if(model.type == 1 && model.people == 0){
 			return "请提供剩余可载人数";
+		}
+		if(model.user == null && model.temp_user == null){
+			return "请提供联系人信息";
+		}
+		if(model.user != null && (model.user.mobile == null || "".equals(model.user.mobile))){
+			return "请提供联系人手机号";
+		}
+		if(model.user != null && model.user.mobile.length() != 11){
+			return "请填写完整的11位手机号";
+		}
+		if(model.temp_user != null && model.temp_user.mobile.length() != 11){
+			return "请填写完整的11位手机号";
 		}
 		return "";
 	}
@@ -84,5 +100,15 @@ public class Tools {
     	district = model.name;
     	return city + " " + district + " " +address;
     }
+    
+    public static String ary2Str(String[] datas){
+		StringBuffer sb = new StringBuffer();
+		for(String data : datas){
+			sb.append(data+",");
+		}
+		if(sb.length() > 0)
+			return sb.substring(0,sb.length()-1);
+		return "";
+	}
     
 }
